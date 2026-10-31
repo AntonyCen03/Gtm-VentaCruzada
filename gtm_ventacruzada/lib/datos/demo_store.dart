@@ -55,13 +55,6 @@ class DemoStore extends ChangeNotifier {
   static const puntosPrimerServicio = 200;
   static const puntosPrimeraVez = 100;
 
-  /// El pago al que Wisi se refiere: el de riesgo de corte o, si no, el primero.
-  Pago? get pagoClave {
-    final p = pendientes;
-    if (p.isEmpty) return null;
-    return p.firstWhere((x) => x.prioritario, orElse: () => p.first);
-  }
-
   /// Las misiones de pagar un servicio desaparecen cuando ya está pagado.
   List<Mision> get misiones => perfil.misiones
       .where((m) => m.accion != AccionMision.pagarServicio || pendientes.any((p) => p.id == m.id))
@@ -208,9 +201,9 @@ class DemoStore extends ChangeNotifier {
     perfil.chat.add(
       MensajeChat(
         deWisi: true,
-        texto: 'Hola, ${perfil.nombre}.',
+        texto: '¡Hola, ${perfil.nombre}!',
         hora: hora(perfil.ajustes.hora),
-        tipo: TipoMensaje.resumen,
+        tipo: TipoMensaje.premio,
       ),
     );
   }
@@ -221,37 +214,7 @@ class DemoStore extends ChangeNotifier {
     return hora(TimeOfDay(hour: minutos ~/ 60 % 24, minute: minutos % 60));
   }
 
-  String textoRespuesta(RespuestaWisi r) => switch (r) {
-    RespuestaWisi.pagarEnApp => 'Pagar en la app',
-    RespuestaWisi.recordarJueves =>
-      pagoClave == null ? 'Recuérdamelo luego' : 'Recuérdamelo el ${diaSemana(pagoClave!.vence)}',
-    RespuestaWisi.noAvisarAqui => 'No me avises por aquí',
-  };
-
-  Future<void> responderWisi(RespuestaWisi r) async {
-    if (r == RespuestaWisi.pagarEnApp || wisiEscribiendo) return;
-    final clave = pagoClave;
-    perfil.chat.add(MensajeChat(deWisi: false, texto: textoRespuesta(r), hora: _horaRespuesta));
-    wisiEscribiendo = true;
-    notifyListeners();
-
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    final respuesta = switch (r) {
-      RespuestaWisi.recordarJueves when clave != null =>
-        'Listo. Te escribo el ${diaSemana(clave.vence)} a las ${hora(const TimeOfDay(hour: 8, minute: 0))}, '
-            'solo si ${clave.empresa} sigue pendiente.',
-      RespuestaWisi.recordarJueves => 'Ya estás al día. Te escribo con tu próximo resumen.',
-      _ =>
-        'Hecho. No te escribo más por aquí. Tu resumen sigue llegando en la app '
-            'y puedes cambiarlo en Tus avisos.',
-    };
-    if (r == RespuestaWisi.noAvisarAqui) perfil.ajustes.whatsapp = false;
-    perfil.chat.add(MensajeChat(deWisi: true, texto: respuesta, hora: _horaRespuesta));
-    wisiEscribiendo = false;
-    notifyListeners();
-  }
-
-  /// Texto libre: Wisi solo entiende los botones en la demo.
+  /// Texto libre: en la demo Wisi responde siempre lo mismo.
   Future<void> escribirAWisi(String texto) async {
     if (texto.trim().isEmpty || wisiEscribiendo) return;
     perfil.chat.add(MensajeChat(deWisi: false, texto: texto.trim(), hora: _horaRespuesta));
@@ -261,7 +224,7 @@ class DemoStore extends ChangeNotifier {
     perfil.chat.add(
       MensajeChat(
         deWisi: true,
-        texto: 'Por ahora te ayudo con los botones de arriba: pagar, recordarte o dejar de escribirte por aquí.',
+        texto: 'Toca «Más información» y te cuento cómo sumar puntos en el Club con tus pagos.',
         hora: _horaRespuesta,
       ),
     );

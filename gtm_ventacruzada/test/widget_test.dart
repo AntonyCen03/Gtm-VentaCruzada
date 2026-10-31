@@ -133,18 +133,25 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Wisi responde y «No me avises por aquí» apaga WhatsApp (P5, P8)', (tester) async {
-    final store = await abrir(tester, ruta: '/wisi');
-    expect(find.text('Hola, María. Esta semana vencen:'), findsOneWidget);
-    await tocar(tester, 'Recuérdamelo el jueves');
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pumpAndSettle();
-    expect(find.text('Listo. Te escribo el jueves a las 8:00\u00A0a.\u00A0m., solo si Corpoelec sigue pendiente.'), findsOneWidget);
+  testWidgets('Wisi engancha con el premio, sin montos, y «Más información» abre el Club (P5)', (tester) async {
+    final store = await abrir(tester, ruta: '/wisi?perfil=carlos');
+    expect(
+      find.text(
+        '¡Hola, Carlos! ¿Sabías que con 1.000 pts puedes canjear un boleto para el concierto de Karol G?',
+        findRichText: true,
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Bs', findRichText: true), findsNothing);
 
-    await tocar(tester, 'No me avises por aquí');
+    await tester.enterText(find.byType(TextField), 'Hola');
+    await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
-    expect(store.perfil.ajustes.whatsapp, isFalse);
+    expect(store.perfil.chat.length, 3);
+
+    await tocar(tester, 'Más información');
+    expect(find.text('Misiones para ti'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

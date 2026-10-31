@@ -23,7 +23,7 @@ const _pantallas = <(String, String, List<double>, String?)>[
   ('p02_inicio_carlos', '/inicio?perfil=carlos', [0.0], null),
   ('p03_anadir_directorio', '/mis-pagos/afiliar?perfil=carlos', [0.0], null),
   ('p04_resumen_semanal', '/resumen', [0.0], null),
-  ('p05_wisi_whatsapp', '/wisi', [0.0], 'Recuérdamelo el jueves'),
+  ('p05_wisi_whatsapp', '/wisi?perfil=carlos', [0.0], null),
   ('p06_mis_pagos', '/mis-pagos', [0.0], null),
   ('p07_semana_al_dia', '/mis-pagos/listo', [0.0], null),
   ('p08_tus_avisos', '/avisos', [0.0], null),

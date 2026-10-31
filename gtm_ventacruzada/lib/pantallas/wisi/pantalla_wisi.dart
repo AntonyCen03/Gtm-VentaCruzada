@@ -3,18 +3,19 @@ import 'package:go_router/go_router.dart';
 
 import '../../componentes/icono.dart';
 import '../../componentes/presionable.dart';
+import '../../datos/datos_demo.dart';
 import '../../datos/demo_store.dart';
 import '../../datos/modelos.dart';
 import '../../tema/formato.dart';
 import '../../tema/tokens.dart';
 
-const _fondoChat = Color(0xFFECEEF1);
+const _fondoChat = PdColor.superficie;
 const _verdePropio = Color(0xFFDDF3E2);
 const _horaGris = Color(0xFF8E8D9C);
 final _sombraBurbuja = sombraCss(1, 2, const Color.fromRGBO(28, 27, 46, 0.08));
 
-/// P5 · Wisi por WhatsApp (simulado). El resumen del domingo se genera con los
-/// pagos pendientes y las respuestas rápidas tienen efecto real en la demo.
+/// P5 · Wisi por WhatsApp (simulado). El domingo Wisi no habla de deudas: usa
+/// un premio del Club como gancho y «Más información» lleva al Club.
 class PantallaWisi extends StatefulWidget {
   const PantallaWisi({super.key});
 
@@ -90,8 +91,8 @@ class _PantallaWisiState extends State<PantallaWisi> {
                 ),
                 for (final m in chat) ...[
                   const SizedBox(height: 8),
-                  if (m.tipo == TipoMensaje.resumen)
-                    _Resumen(mensaje: m)
+                  if (m.tipo == TipoMensaje.premio)
+                    _Premio(mensaje: m)
                   else if (m.deWisi)
                     _BurbujaWisi(texto: m.texto, hora: m.hora)
                   else
@@ -203,17 +204,18 @@ class _Encabezado extends StatelessWidget {
   }
 }
 
-/// Mensaje del domingo con la tabla de vencimientos y las respuestas rápidas.
-class _Resumen extends StatelessWidget {
-  const _Resumen({required this.mensaje});
+/// Mensaje del domingo: el premio del Club como gancho, sin montos ni
+/// vencimientos, y un solo botón que lleva al Club.
+class _Premio extends StatelessWidget {
+  const _Premio({required this.mensaje});
 
   final MensajeChat mensaje;
 
   @override
   Widget build(BuildContext context) {
-    final store = Demo.of(context);
-    final pendientes = store.pendientes;
-    final ocupado = store.wisiEscribiendo;
+    const rosa = TextStyle(color: PdColor.acentoOscuro, fontWeight: FontWeight.w700);
+    const fuerte = TextStyle(fontWeight: FontWeight.w700);
+    final cuerpo = letra(15, FontWeight.w400, PdColor.tinta, 1.4);
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -237,59 +239,28 @@ class _Resumen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    pendientes.isEmpty
-                        ? '${mensaje.texto} Esta semana no tienes vencimientos.'
-                        : '${mensaje.texto} Esta semana vencen:',
-                    style: letra(15, FontWeight.w400, PdColor.tinta, 1.4),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: '${mensaje.texto} ¿Sabías que con '),
+                        TextSpan(text: '${miles(premioWisi.puntos)} pts', style: rosa),
+                        const TextSpan(text: ' puedes canjear '),
+                        TextSpan(text: premioWisi.texto, style: fuerte),
+                        const TextSpan(text: '?'),
+                      ],
+                    ),
+                    style: cuerpo,
                   ),
-                  if (pendientes.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(color: PdColor.fondo, borderRadius: BorderRadius.circular(12)),
-                      child: Column(
-                        children: [
-                          for (final (i, p) in pendientes.indexed) ...[
-                            if (i > 0) const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text.rich(
-                                    TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: p.empresa,
-                                          style: const TextStyle(fontWeight: FontWeight.w700),
-                                        ),
-                                        TextSpan(text: ' · ${diaSemana(p.vence)}'),
-                                      ],
-                                    ),
-                                    style: letra(14),
-                                  ),
-                                ),
-                                Text(bsPunto(p.centimos), style: letra(14, FontWeight.w600)),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
+                  const SizedBox(height: 8),
+                  Text.rich(
+                    const TextSpan(
+                      children: [
+                        TextSpan(text: 'Si pagas tus servicios con PagoDirecto, cada pago te suma '),
+                        TextSpan(text: 'puntos en el Club.', style: rosa),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          const TextSpan(text: 'Si los pagas en PagoDirecto ganas '),
-                          TextSpan(
-                            text: pts(store.puntosPendientes),
-                            style: const TextStyle(color: PdColor.acentoOscuro, fontWeight: FontWeight.w700),
-                          ),
-                          const TextSpan(text: ' del Club.'),
-                        ],
-                      ),
-                      style: letra(14.5, FontWeight.w400, PdColor.tinta, 1.4),
-                    ),
-                  ],
+                    style: cuerpo,
+                  ),
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
@@ -299,24 +270,7 @@ class _Resumen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            _Respuesta(
-              texto: store.textoRespuesta(RespuestaWisi.pagarEnApp),
-              icono: Ico.abrirExterno,
-              color: PdColor.tinta,
-              onTap: () => context.go('/mis-pagos'),
-            ),
-            const SizedBox(height: 4),
-            _Respuesta(
-              texto: store.textoRespuesta(RespuestaWisi.recordarJueves),
-              onTap: ocupado ? null : () => store.responderWisi(RespuestaWisi.recordarJueves),
-            ),
-            const SizedBox(height: 4),
-            _Respuesta(
-              texto: store.textoRespuesta(RespuestaWisi.noAvisarAqui),
-              onTap: ocupado || !store.perfil.ajustes.whatsapp
-                  ? null
-                  : () => store.responderWisi(RespuestaWisi.noAvisarAqui),
-            ),
+            _Respuesta(texto: 'Más información', icono: Ico.abrirExterno, onTap: () => context.push('/club')),
           ],
         ),
       ),
@@ -325,12 +279,13 @@ class _Resumen extends StatelessWidget {
 }
 
 class _Respuesta extends StatelessWidget {
-  const _Respuesta({required this.texto, required this.onTap, this.icono, this.color = PdColor.exitoTexto});
+  const _Respuesta({required this.texto, required this.onTap, this.icono});
 
   final String texto;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
   final Ico? icono;
-  final Color color;
+
+  static const _color = PdColor.exitoTexto;
 
   @override
   Widget build(BuildContext context) {
@@ -349,8 +304,8 @@ class _Respuesta extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icono != null) ...[IconoPd(icono!, tamano: 16, color: color), const SizedBox(width: 6)],
-            Text(texto, style: letra(15, FontWeight.w600, color)),
+            if (icono != null) ...[IconoPd(icono!, tamano: 16, color: _color), const SizedBox(width: 6)],
+            Text(texto, style: letra(15, FontWeight.w600, _color)),
           ],
         ),
       ),

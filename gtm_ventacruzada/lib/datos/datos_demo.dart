@@ -16,6 +16,9 @@ const canjesDemo = [
   Canje(titulo: '1 ticket extra de Credirecto', puntos: 1500, credirecto: true),
 ];
 
+/// Premio que Wisi usa de gancho en WhatsApp (P5).
+const premioWisi = (texto: 'un boleto para el concierto de Karol G', puntos: 1000);
+
 /// Servicios que se pueden afiliar en P3 y la factura que «encuentra» la búsqueda.
 const serviciosAfiliables = ['Corpoelec', 'Movistar', 'CANTV', 'Hidrocapital'];
 

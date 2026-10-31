@@ -114,8 +114,8 @@ class AjustesAvisos {
 }
 
 enum TipoMensaje {
-  /// Mensaje del domingo con la tabla de vencimientos.
-  resumen,
+  /// Mensaje del domingo: el premio del Club como gancho, sin hablar de deudas.
+  premio,
   texto,
 }
 
@@ -127,8 +127,6 @@ class MensajeChat {
   final String hora;
   final TipoMensaje tipo;
 }
-
-enum RespuestaWisi { pagarEnApp, recordarJueves, noAvisarAqui }
 
 class TicketEstacionamiento {
   const TicketEstacionamiento({
