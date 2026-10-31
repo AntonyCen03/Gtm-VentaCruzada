@@ -5,6 +5,8 @@
 //   flutter test tool/capturas_test.dart --update-goldens
 //   flutter test tool/capturas_test.dart --update-goldens --dart-define=CARPETA=fase3 --dart-define=ANCHO=360
 
+import 'dart:math';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gtm_ventacruzada/app/app.dart';
@@ -27,7 +29,8 @@ const _pantallas = <(String, String, List<double>, String?)>[
   ('p06_mis_pagos', '/mis-pagos', [0.0], null),
   ('p07_semana_al_dia', '/mis-pagos/listo', [0.0], null),
   ('p08_tus_avisos', '/avisos', [0.0], null),
-  ('a1_club', '/club', [0.0], null),
+  ('a1_club', '/club', [0.0, 400.0], null),
+  ('a1b_capsula_abierta', '/club', [400.0], 'Abrir cápsula · 500 pts'),
   ('a2_estacionar_pago', '/estacionar', [0.0], null),
   ('a3_salida', '/estacionar/listo', [0.0], null),
   ('menu_demo', '/inicio', [0.0], 'Menu'),
@@ -47,7 +50,12 @@ void main() {
 
       // Los SVG se decodifican fuera del reloj falso de las pruebas.
       await tester.runAsync(() async {
-        await tester.pumpWidget(AppPagoDirecto(store: DemoStore(), rutaInicial: ruta));
+        await tester.pumpWidget(
+          AppPagoDirecto(
+            store: DemoStore(azar: Random(7)),
+            rutaInicial: ruta,
+          ),
+        );
         await Future<void>.delayed(const Duration(milliseconds: 400));
         await tester.pump();
         await Future<void>.delayed(const Duration(milliseconds: 400));
@@ -55,10 +63,14 @@ void main() {
       // Sin pumpAndSettle: los indicadores de carga giran sin fin.
       await tester.pump(const Duration(seconds: 1));
       if (tocar != null) {
+        await tester.ensureVisible(find.text(tocar).last);
+        await tester.pump(const Duration(milliseconds: 300));
         await tester.tap(find.text(tocar).last);
         await tester.pump();
         await tester.pump(const Duration(seconds: 1));
-        // Respuestas con retraso simulado (Wisi «escribiendo…»).
+        // Respuestas con retraso (Wisi «escribiendo…») y la apertura de la cápsula.
+        await tester.pump(const Duration(seconds: 5));
+        // Un cuadro más para lo que aparece al terminar (el premio de la cápsula).
         await tester.pump(const Duration(seconds: 1));
       }
 

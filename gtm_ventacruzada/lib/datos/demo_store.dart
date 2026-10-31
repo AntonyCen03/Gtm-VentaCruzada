@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -11,9 +12,12 @@ enum EstadoDatos { listo, cargando, error }
 /// Única fuente de verdad de la demo. Hace de «backend» simulado: todo total,
 /// punto y racha que aparece en pantalla se calcula aquí.
 class DemoStore extends ChangeNotifier {
-  DemoStore() {
+  /// [azar] fijo en pruebas y capturas para que la Cápsula sorpresa sea repetible.
+  DemoStore({math.Random? azar}) : _azar = azar ?? math.Random() {
     _perfiles = _crearPerfiles();
   }
+
+  final math.Random _azar;
 
   late Map<String, Perfil> _perfiles;
   String _perfilId = 'maria';
@@ -46,7 +50,10 @@ class DemoStore extends ChangeNotifier {
   List<Pago> get pagados => _conEstado(EstadoPago.pagado);
 
   int get totalPendiente => pendientes.fold(0, (s, p) => s + p.centimos);
-  int get puntosPendientes => pendientes.fold(0, (s, p) => s + p.puntos);
+
+  /// Puntos de un pago, con el doble si salió en la Cápsula sorpresa.
+  int puntosDe(Pago p) => p.puntos * (perfil.doblePuntos ? 2 : 1);
+  int get puntosPendientes => pendientes.fold(0, (s, p) => s + puntosDe(p));
   int get pendientesEstaSemana =>
       pendientes.where((p) => p.vence.difference(DateUtils.dateOnly(hoy)).inDays < 7).length;
 
@@ -70,7 +77,11 @@ class DemoStore extends ChangeNotifier {
   double get progresoNivel => (perfil.puntos / Perfil.puntosSiguienteNivel).clamp(0, 1);
 
   int get servicioEstacionamiento => perfil.estacionamientoSinServicio ? 0 : ticketDemo.servicioCentimos;
-  int get totalEstacionamiento => ticketDemo.centimos + servicioEstacionamiento;
+
+  /// Con un estacionamiento gratis de la Cápsula sorpresa no se paga nada.
+  int get descuentoEstacionamiento =>
+      perfil.estacionamientosGratis > 0 ? ticketDemo.centimos + servicioEstacionamiento : 0;
+  int get totalEstacionamiento => ticketDemo.centimos + servicioEstacionamiento - descuentoEstacionamiento;
 
   // ── Acciones ──
 
@@ -119,15 +130,11 @@ class DemoStore extends ChangeNotifier {
     return m.puntos;
   }
 
-  /// Devuelve false si no alcanzan los puntos.
+  /// Participar en un sorteo. Devuelve false si no alcanzan los puntos.
   bool canjear(Canje c) {
     if (perfil.puntos < c.puntos) return false;
     perfil.puntos -= c.puntos;
-    if (c.credirecto) {
-      perfil.ticketsCredirecto += 1;
-    } else {
-      perfil.estacionamientoSinServicio = true;
-    }
+    perfil.sorteos.add(c.titulo);
     notifyListeners();
     return true;
   }
@@ -163,7 +170,7 @@ class DemoStore extends ChangeNotifier {
   ResultadoPago pagar(Iterable<String> ids, MetodoPago metodo) {
     final aPagar = pendientes.where((p) => ids.contains(p.id)).toList();
     final total = aPagar.fold(0, (s, p) => s + p.centimos);
-    final ganados = aPagar.fold(0, (s, p) => s + p.puntos);
+    final ganados = aPagar.fold(0, (s, p) => s + puntosDe(p));
     final resultado = ResultadoPago(
       pagos: aPagar,
       puntosAntes: perfil.puntos,
@@ -173,7 +180,8 @@ class DemoStore extends ChangeNotifier {
     );
 
     perfil.pagos = [
-      for (final p in perfil.pagos) aPagar.any((x) => x.id == p.id) ? p.copyWith(estado: EstadoPago.pagado) : p,
+      for (final p in perfil.pagos)
+        aPagar.any((x) => x.id == p.id) ? p.copyWith(estado: EstadoPago.pagado, puntos: puntosDe(p)) : p,
     ];
     perfil.puntos += ganados;
     if (metodo == MetodoPago.pagoDirecto) {
@@ -188,6 +196,33 @@ class DemoStore extends ChangeNotifier {
     perfil.ultimoPago = resultado;
     notifyListeners();
     return resultado;
+  }
+
+  static const precioCapsula = 500;
+
+  /// Cobra la cápsula, sortea el premio según su peso y lo entrega al momento.
+  PremioCapsula abrirCapsula() {
+    if (perfil.puntos < precioCapsula) throw StateError('No alcanzan los puntos.');
+    final total = PremioCapsula.values.fold(0, (s, p) => s + p.peso);
+    var tirada = _azar.nextInt(total);
+    final premio = PremioCapsula.values.firstWhere((p) {
+      if (tirada < p.peso) return true;
+      tirada -= p.peso;
+      return false;
+    });
+    perfil.puntos -= precioCapsula;
+    switch (premio) {
+      case PremioCapsula.credito:
+        perfil.ticketsCredirecto += 1;
+      case PremioCapsula.estacionamiento:
+        perfil.estacionamientosGratis += 1;
+      case PremioCapsula.puntos:
+        perfil.puntos += 300;
+      case PremioCapsula.doblePuntos:
+        perfil.doblePuntos = true;
+    }
+    notifyListeners();
+    return premio;
   }
 
   void cambiarAjustes(void Function(AjustesAvisos a) cambio) {
@@ -234,7 +269,9 @@ class DemoStore extends ChangeNotifier {
 
   void pagarEstacionamiento(MetodoPago metodo) {
     perfil.ultimoEstacionamientoCentimos = totalEstacionamiento;
-    if (metodo == MetodoPago.pagoDirecto) {
+    if (perfil.estacionamientosGratis > 0) {
+      perfil.estacionamientosGratis -= 1;
+    } else if (metodo == MetodoPago.pagoDirecto) {
       perfil.saldoCentimos -= totalEstacionamiento;
     } else {
       perfil.ticketsCredirecto -= 1;

@@ -11,6 +11,7 @@ import '../../datos/modelos.dart';
 import '../../tema/formato.dart';
 import '../../tema/tokens.dart';
 import '../inicio/pantalla_inicio.dart';
+import 'capsula_sorpresa.dart';
 
 final _sombraTarjeta = sombraCss(4, 14, const Color.fromRGBO(28, 27, 46, 0.06));
 
@@ -123,6 +124,8 @@ class PantallaClub extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 10),
+                const TarjetaCapsula(),
               ],
             ),
           ),
@@ -184,6 +187,7 @@ class _Mision extends StatelessWidget {
   }
 }
 
+/// Sorteo del Club: se participa canjeando puntos.
 class _Canje extends StatelessWidget {
   const _Canje({required this.canje});
 
@@ -191,35 +195,49 @@ class _Canje extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final credirecto = canje.credirecto;
+    final oscuro = canje.oscuro;
+    final participa = Demo.of(context).perfil.sorteos.contains(canje.titulo);
     return Presionable(
       onTap: () {
         final store = Demo.leer(context);
         final faltan = canje.puntos - store.perfil.puntos;
         if (store.canjear(canje)) {
-          avisoBreve(context, 'Canjeaste: ${canje.titulo}.');
+          avisoBreve(context, '¡Ya participas en el sorteo: ${canje.titulo}!');
         } else {
-          avisoBreve(context, 'Te faltan ${miles(faltan)} pts para este canje.');
+          avisoBreve(context, 'Te faltan ${miles(faltan)} pts para este sorteo.');
         }
       },
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: credirecto ? null : PdColor.superficie,
-          gradient: credirecto
+          color: oscuro ? null : PdColor.superficie,
+          gradient: oscuro
               ? degradadoCss(160, const [Color(0xFF1C1B2E), Color(0xFF2A2D1E), Color(0xFF6E8F1E)], const [0, 0.55, 1])
               : null,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: credirecto ? null : _sombraTarjeta,
+          boxShadow: oscuro ? null : _sombraTarjeta,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(canje.titulo, style: letra(14, FontWeight.w700, credirecto ? Colors.white : PdColor.tinta, 1.25)),
-            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+              decoration: BoxDecoration(
+                color: oscuro ? const Color(0xFF34391F) : PdColor.acentoPalido,
+                borderRadius: BorderRadius.circular(PdRadio.pildora),
+              ),
+              child: Text(
+                participa ? 'Participando' : 'Sorteo',
+                style: letra(12, FontWeight.w700, oscuro ? PdColor.lima : PdColor.acentoOscuro),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(canje.titulo, style: letra(15, FontWeight.w700, oscuro ? Colors.white : PdColor.tinta, 1.25)),
+            const Spacer(),
+            const SizedBox(height: 8),
             Text(
               '${miles(canje.puntos)} pts',
-              style: letra(13, FontWeight.w700, credirecto ? PdColor.lima : PdColor.acentoOscuro),
+              style: letra(15, FontWeight.w700, oscuro ? PdColor.lima : PdColor.acentoOscuro),
             ),
           ],
         ),

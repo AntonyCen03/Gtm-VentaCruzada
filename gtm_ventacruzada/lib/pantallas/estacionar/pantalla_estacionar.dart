@@ -79,6 +79,11 @@ class _PantallaEstacionarState extends State<PantallaEstacionar> {
                                     : 'Servicio PagoDirecto',
                                 bs(store.servicioEstacionamiento),
                               ),
+                              if (store.descuentoEstacionamiento > 0)
+                                detalle(
+                                  'Cápsula sorpresa · estacionamiento gratis',
+                                  bs(-store.descuentoEstacionamiento),
+                                ),
                             ],
                           ),
                         ),

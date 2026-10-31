@@ -12,8 +12,8 @@ const ticketDemo = TicketEstacionamiento(
 );
 
 const canjesDemo = [
-  Canje(titulo: 'Estacionamiento sin servicio PagoDirecto', puntos: 600),
-  Canje(titulo: '1 ticket extra de Credirecto', puntos: 1500, credirecto: true),
+  Canje(titulo: '2 boletos para el concierto de Karol G', puntos: 1500),
+  Canje(titulo: 'Un carro 0 km', puntos: 5000, oscuro: true),
 ];
 
 /// Premio que Wisi usa de gancho en WhatsApp (P5).

@@ -227,6 +227,8 @@ class FilaPagoMisPagos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pagado = pago.estado == EstadoPago.pagado;
+    // Lo pagado guarda los puntos que ganó; lo pendiente refleja «doble puntos».
+    final puntos = pagado ? pago.puntos : Demo.of(context).puntosDe(pago);
     final urgente = pago.prioritario && !pagado;
     final vence = pagado ? 'Pagado' : venceLargo(pago.vence, hoy);
 
@@ -269,7 +271,7 @@ class FilaPagoMisPagos extends StatelessWidget {
               Text(bsPunto(pago.centimos), style: letra(16, FontWeight.w700)),
               const SizedBox(height: 2),
               Text(
-                pagado ? 'Ganaste ${pts(pago.puntos, signo: false)}' : pts(pago.puntos),
+                pagado ? 'Ganaste ${pts(puntos, signo: false)}' : pts(puntos),
                 style: letra(12, FontWeight.w600, PdColor.acentoOscuro),
               ),
             ],
@@ -285,7 +287,7 @@ class FilaPagoMisPagos extends StatelessWidget {
     return Semantics(
       label:
           '${pago.empresa}, ${bs(pago.centimos)}, ${vence.toLowerCase()}, '
-          '${pagado ? 'ganaste' : 'ganas'} ${pago.puntos} puntos',
+          '${pagado ? 'ganaste' : 'ganas'} $puntos puntos',
       excludeSemantics: true,
       button: onTap != null,
       child: onTap == null ? fila : Presionable(onTap: onTap, escala: 0.98, child: fila),

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gtm_ventacruzada/app/app.dart';
@@ -47,6 +49,28 @@ void main() {
       expect(s.misiones.any((m) => m.accion == AccionMision.pagarServicio), isFalse);
     });
 
+    test('cápsula sorpresa: probabilidades al 100 %, cuesta 500 pts y el premio se aplica', () {
+      expect(PremioCapsula.values.fold(0, (s, p) => s + p.peso), 100);
+      final s = DemoStore(azar: Random(7));
+      expect(s.abrirCapsula(), PremioCapsula.estacionamiento);
+      expect(s.perfil.puntos, 750);
+      expect(s.totalEstacionamiento, 0);
+      s.pagarEstacionamiento(MetodoPago.pagoDirecto);
+      expect(s.perfil.saldoCentimos, 2543000);
+      expect(s.totalEstacionamiento, 165547);
+
+      final carlos = DemoStore()..cambiarPerfil('carlos');
+      expect(carlos.abrirCapsula, throwsStateError);
+    });
+
+    test('doble puntos duplica lo que se gana al pagar', () {
+      final s = DemoStore()..perfil.doblePuntos = true;
+      expect(s.puntosPendientes, 1200);
+      s.pagar(s.pendientes.map((p) => p.id), MetodoPago.pagoDirecto);
+      expect(s.perfil.puntos, 2450);
+      expect(s.pagados.first.puntos, 600);
+    });
+
     test('el primer servicio de Carlos da +200 pts', () {
       final s = DemoStore()..cambiarPerfil('carlos');
       final antes = s.perfil.puntos;
@@ -57,12 +81,12 @@ void main() {
     });
   });
 
-  Future<DemoStore> abrir(WidgetTester tester, {String ruta = '/inicio'}) async {
+  Future<DemoStore> abrir(WidgetTester tester, {String ruta = '/inicio', int semilla = 2}) async {
     tester.view
       ..devicePixelRatio = 2
       ..physicalSize = const Size(390 * 2, 844 * 2);
     addTearDown(tester.view.reset);
-    final store = DemoStore();
+    final store = DemoStore(azar: Random(semilla));
     await tester.pumpWidget(AppPagoDirecto(store: store, rutaInicial: ruta));
     await tester.pumpAndSettle();
     return store;
@@ -152,6 +176,34 @@ void main() {
 
     await tocar(tester, 'Más información');
     expect(find.text('Misiones para ti'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Cápsula sorpresa: se abre en el mismo Club y muestra el premio', (tester) async {
+    final store = await abrir(tester, ruta: '/club', semilla: 7);
+    final abrirCapsula = find.text('Abrir cápsula · 500 pts');
+    await tester.scrollUntilVisible(abrirCapsula, 200, scrollable: find.byType(Scrollable).last);
+    await tester.ensureVisible(abrirCapsula);
+    await tester.pumpAndSettle();
+
+    await tester.tap(abrirCapsula);
+    await tester.pump();
+    expect(find.text('Abriendo…'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(find.text('¡Te salió 1 estacionamiento!'), findsOneWidget);
+    expect(find.text('Canjea tus puntos'), findsOneWidget);
+    expect(store.perfil.estacionamientosGratis, 1);
+    expect(store.perfil.puntos, 750);
+
+    // Con el premio a la vista, un toque cierra la cápsula sin cobrar otra.
+    await tocar(tester, '¡Te salió 1 estacionamiento!');
+    expect(abrirCapsula, findsOneWidget);
+    expect(store.perfil.puntos, 750);
+
+    // Sorteo de Karol G: con 750 pts todavía no alcanza.
+    await tocar(tester, '2 boletos para el concierto de Karol G');
+    expect(store.perfil.sorteos, isEmpty);
     expect(tester.takeException(), isNull);
   });
 

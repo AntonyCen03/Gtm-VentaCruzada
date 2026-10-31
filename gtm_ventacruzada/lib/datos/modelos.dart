@@ -36,13 +36,13 @@ class Pago {
   final EstadoPago estado;
   final String? alias;
 
-  Pago copyWith({EstadoPago? estado, String? alias}) => Pago(
+  Pago copyWith({EstadoPago? estado, String? alias, int? puntos}) => Pago(
     id: id,
     empresa: empresa,
     referencia: referencia,
     centimos: centimos,
     vence: vence,
-    puntos: puntos,
+    puntos: puntos ?? this.puntos,
     icono: icono,
     prioritario: prioritario,
     estado: estado ?? this.estado,
@@ -79,12 +79,31 @@ class Mision {
   final AccionMision accion;
 }
 
+/// Sorteo del Club: se participa canjeando puntos.
 class Canje {
-  const Canje({required this.titulo, required this.puntos, this.credirecto = false});
+  const Canje({required this.titulo, required this.puntos, this.oscuro = false});
 
   final String titulo;
   final int puntos;
-  final bool credirecto;
+
+  /// Tarjeta oscura con degradado verde (la del carro).
+  final bool oscuro;
+}
+
+/// Lo que puede salir de la Cápsula sorpresa. [peso] es su probabilidad en %.
+enum PremioCapsula {
+  credito('Crédito en Credirecto', '¡Te salió crédito en Credirecto!', 'C', 20),
+  estacionamiento('1 estacionamiento gratis', '¡Te salió 1 estacionamiento!', 'P', 25),
+  puntos('+300 pts de regalo', '¡Te salieron +300 pts!', '+300', 40),
+  doblePuntos('Doble puntos por 1 semana', '¡Te salió doble puntos!', 'x2', 15);
+
+  const PremioCapsula(this.nombre, this.anuncio, this.simbolo, this.peso);
+  final String nombre;
+  final String anuncio;
+
+  /// Lo que se ve en la bolita que sale de la cápsula.
+  final String simbolo;
+  final int peso;
 }
 
 /// Ajustes de P8. «Nunca mientras manejo» no es un ajuste: siempre está activo.
@@ -225,6 +244,13 @@ class Perfil {
 
   /// Premio de P7: el próximo estacionamiento no paga el servicio PagoDirecto.
   bool estacionamientoSinServicio = false;
+
+  /// Premios de la Cápsula sorpresa pendientes de usar.
+  int estacionamientosGratis = 0;
+  bool doblePuntos = false;
+
+  /// Sorteos del Club en los que participa.
+  final List<String> sorteos = [];
   ResultadoPago? ultimoPago;
   int? ultimoEstacionamientoCentimos;
 
